@@ -85,21 +85,22 @@ if st.button("🚀 AI分析レポートを生成する"):
     4. 【本人へのフィードバックメッセージ】
     """
 
-    try:
+try:
         # 1. APIキーの設定
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
         
-        # 2. モデルの指定（最新版に修正済み）
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        # 2. モデル名を標準的な 'gemini-1.5-flash' に変更（latestを外す）
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         # 3. AI分析の実行
         with st.spinner('AIが分析レポートを作成中です...'):
+            # ソース資料のデータをプロンプトに渡します
             response = model.generate_content(prompt)
             st.success("分析が完了しました！")
             st.markdown("---")
             st.markdown(response.text)
             
     except Exception as e:
-        # ここが「except」ブロックです。これがないとエラーになります。
+        # 文法エラーを防ぐため、この except ブロックを必ず try と同じ高さの字下げで書きます
         st.error(f"AI分析中にエラーが発生しました。詳細: {e}")
