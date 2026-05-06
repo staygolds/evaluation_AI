@@ -25,13 +25,15 @@ st.sidebar.header("評価対象者の選択")
 staff_names = df_staff['氏名'].tolist()
 selected_name = st.sidebar.selectbox("職員を選んでください", staff_names)
 
-# --- 重要：.iloc を使用してデータを確定させる ---
+# --- 重要：ここがエラーの修正箇所です ---
 # 1. 選択された氏名に一致する行を抽出
 staff_matches = df_staff[df_staff['氏名'] == selected_name]
 
 if not staff_matches.empty:
-    # .iloc を付けることで「最初の1行」のデータとして確定させます
+    # .iloc を付けることで、リストから「最初の1行」のデータとして確定させます
     staff_info = staff_matches.iloc
+    
+    # これで '職員ID' などの文字キーでデータが取り出せるようになります
     staff_id = staff_info['職員ID']
     job_type = staff_info['職種区分']
     qualifications = staff_info['保有資格']
