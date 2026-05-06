@@ -25,13 +25,16 @@ st.sidebar.header("評価対象者の選択")
 staff_names = df_staff['氏名'].tolist()
 selected_name = st.sidebar.selectbox("職員を選んでください", staff_names)
 
-# .iloc の後ろに  を追加して、1件分のデータ（Series）として確定させます
+# --- 修正後のコード ---
+# 選択された職員の「最初の1行分」を Series形式で取得します
 staff_info = df_staff[df_staff['氏名'] == selected_name].iloc
+
+# これで、文字列を使って各項目にアクセスできるようになります
 staff_id = staff_info['職員ID']
 job_type = staff_info['職種区分']
 qualifications = staff_info['保有資格']
 
-# 職務分掌マスターからミッションを取得 [2]
+# 職務分掌マスターからの取得も同様に修正します
 mission_info = df_missions[df_missions['職員ID'] == staff_id].iloc
 main_mission = mission_info['重要ミッション']
 target_metric = mission_info['主要数値目標']
