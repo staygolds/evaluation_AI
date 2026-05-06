@@ -58,21 +58,48 @@ if not relevant_criteria.empty:
 else:
     st.warning(f"「{department}」に対応する評価項目が見つかりません。CSVの所属部署名を確認してください。")
 
+# --- AI分析実行 ---
 if st.button("🚀 AI分析レポートを生成する"):
     eval_text = "\n".join([f"- {k}: {v}点" for k, v in scores.items()])
-    prompt = f"社会福祉施設の人事評価レポートを作成してください。\n氏名:{selected_name}\n役職:{job_title}\nミッション:{main_mission}\n評価:{eval_text}"
     
+    prompt = f"""
+    あなたは社会福祉施設の経営人事エキスパートです。
+    以下のソース資料データに基づき、具体的かつ専門的な評価レポートを作成してください。
+
+    # 職員プロフィール
+    - 氏名：{selected_name}
+    - 役職：{job_title}
+    - 保有資格：{qualifications}
+
+    # 今期の最優先ミッションと数値目標
+    - 重要ミッション：{main_mission}
+    - 主要数値目標：{target_metric} ({target_value})
+
+    # 行動評価結果（5点満点）
+    {eval_text}
+
+    # レポート構成
+    1. 【現状の総評】
+    2. 【強みの分析】
+    3. 【課題と改善アドバイス】
+    4. 【本人へのフィードバックメッセージ】
+    """
+
     try:
-        # SecretsからAPIキーを読み込み
+        # 1. APIキーの設定
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
-        # 末尾に -latest をつけるか、gemini-1.5-pro を試します
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
         
-        with st.spinner('AIが分析中...'):
+        # 2. モデルの指定（最新版に修正済み）
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        
+        # 3. AI分析の実行
+        with st.spinner('AIが分析レポートを作成中です...'):
             response = model.generate_content(prompt)
-            st.success("分析完了")
+            st.success("分析が完了しました！")
+            st.markdown("---")
             st.markdown(response.text)
+            
     except Exception as e:
-        # エラーの「本当の理由」を表示するように変更しました
+        # ここが「except」ブロックです。これがないとエラーになります。
         st.error(f"AI分析中にエラーが発生しました。詳細: {e}")
