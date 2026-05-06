@@ -31,7 +31,7 @@ staff_matches = df_staff[df_staff['氏名'] == selected_name]
 
 if not staff_matches.empty:
     # .iloc を使うことで、リストではなく「1人分のデータ」として確定させます
-    selected_staff = staff_matches.iloc
+    selected_staff = staff_matches.iloc[0]
     staff_id = selected_staff['職員ID']
     job_type = selected_staff['職種区分']
     qualifications = selected_staff['保有資格']
@@ -44,7 +44,7 @@ else:
 mission_matches = df_missions[df_missions['職員ID'] == staff_id]
 
 if not mission_matches.empty:
-    selected_mission = mission_matches.iloc
+    selected_mission = mission_matches.iloc[0]
     main_mission = selected_mission['重要ミッション']
     target_metric = selected_mission['主要数値目標']
     target_value = selected_mission['目標値']
