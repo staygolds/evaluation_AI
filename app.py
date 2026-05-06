@@ -2,10 +2,8 @@ import streamlit as st
 import pandas as pd
 import google.generativeai as genai
 
-# --- ページ基本設定 ---
 st.set_page_config(page_title="福祉施設 AI評価システム", layout="wide")
 
-# --- データの読み込み関数 ---
 @st.cache_data
 def load_data():
     staff = pd.read_csv('m_staff.csv', encoding='utf-8')
@@ -16,28 +14,22 @@ def load_data():
 try:
     df_staff, df_missions, df_criteria = load_data()
 except Exception as e:
-    st.error(f"CSVファイルの読み込みに失敗しました: {e}")
+    st.error(f"CSV読み込み失敗: {e}")
     st.stop()
 
-# --- サイドバー：評価対象者の選択 ---
 st.sidebar.header("評価対象者の選択")
-staff_names = df_staff['氏名'].tolist()
-selected_name = st.sidebar.selectbox("職員を選んでください", staff_names)
+selected_name = st.sidebar.selectbox("職員を選んでください", df_staff['氏名'].tolist())
 
-# --- データの抽出（.iloc を使用） ---
 staff_matches = df_staff[df_staff['氏名'] == selected_name]
-
 if not staff_matches.empty:
     selected_staff = staff_matches.iloc[0]
     staff_id = selected_staff['職員ID']
-    job_title = selected_staff['職種区分']   # 役職名（例：副管理者...）
-    department = selected_staff['所属部署']  # 部署名（例：幹部、事務...） [1]
+    job_title = selected_staff['職種区分']
+    department = selected_staff['所属部署']
     qualifications = selected_staff['保有資格']
 else:
-    st.error("職員情報が見つかりません。")
     st.stop()
 
-# 職務分掌マスターからミッション取得
 mission_matches = df_missions[df_missions['職員ID'] == staff_id]
 if not mission_matches.empty:
     selected_mission = mission_matches.iloc[0]
@@ -47,54 +39,39 @@ if not mission_matches.empty:
 else:
     main_mission, target_metric, target_value = "未設定", "未設定", "-"
 
-# --- メイン画面：基本情報の表示 ---
 st.title(f"📊 AI分析レポート作成: {selected_name} さん")
-
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("👤 職員プロフィール")
-    st.write(f"**役職:** {job_title}")
-    st.write(f"**所属グループ:** {department}")
-    st.write(f"**保有資格:** {qualifications}")
-with col2:
-    st.subheader("🎯 今期のミッション")
-    st.info(f"**最優先事項:**\n{main_mission}")
-    st.write(f"**数値目標:** {target_metric} ({target_value})")
+st.write(f"**役職:** {job_title} | **所属:** {department} | **資格:** {qualifications}")
+st.info(f"**今期のミッション:** {main_mission}")
 
 st.divider()
 
-# --- 評価入力セクション ---
-# 【重要変更】職員データの「所属部署」と、評価項目データの「職種区分」を一致させる [1], [2]
-st.subheader(f"✅ {department}職 評価項目入力")
-relevant_criteria = df_criteria[df_criteria['職種区分'] == department]
+# --- 【名称不一致の自動解消】 ---
+# 資料[1]の「初任者」を資料[2]の「新任」に自動で読み替えます
+search_dept = "新任" if department == "初任者" else department
+relevant_criteria = df_criteria[df_criteria['職種区分'] == search_dept]
 
 scores = {}
 if not relevant_criteria.empty:
+    st.subheader(f"✅ {search_dept}職 評価項目入力")
     for _, item in relevant_criteria.iterrows():
         scores[item['評価項目名']] = st.slider(item['評価項目名'], 1, 5, 3)
 else:
-    st.warning(f"「{department}」に対応する評価項目が見つかりません。")
+    st.warning(f"「{department}」に対応する評価項目が見つかりません。CSVの所属部署名を確認してください。")
 
-# --- AI分析実行 ---
 if st.button("🚀 AI分析レポートを生成する"):
     eval_text = "\n".join([f"- {k}: {v}点" for k, v in scores.items()])
+    prompt = f"社会福祉施設の人事評価レポートを作成してください。\n氏名:{selected_name}\n役職:{job_title}\nミッション:{main_mission}\n評価:{eval_text}"
     
-    prompt = f"""
-    あなたは社会福祉施設の経営人事エキスパートです。
-    # 氏名：{selected_name} / 役職：{job_title} / 所属：{department}
-    # 保有資格：{qualifications}
-    # 重要ミッション：{main_mission}
-    # 数値目標：{target_metric} ({target_value})
-    # 評価点：\n{eval_text}
-    """
-
     try:
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        # SecretsからAPIキーを読み込み
+        api_key = st.secrets["GEMINI_API_KEY"]
+        genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
-        with st.spinner('AI分析中...'):
+        
+        with st.spinner('AIが分析中...'):
             response = model.generate_content(prompt)
-            st.success("分析が完了しました！")
-            st.markdown("---")
+            st.success("分析完了")
             st.markdown(response.text)
     except Exception as e:
-        st.error("APIキーの設定またはAI分析中にエラーが発生しました。")
+        # エラーの「本当の理由」を表示するように変更しました
+        st.error(f"AI分析中にエラーが発生しました。詳細: {e}")
