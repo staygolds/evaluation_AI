@@ -66,7 +66,8 @@ if st.button("🚀 AI分析レポートを生成する"):
         # SecretsからAPIキーを読み込み
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # 末尾に -latest をつけるか、gemini-1.5-pro を試します
+model = genai.GenerativeModel('gemini-1.5-flash-latest')
         
         with st.spinner('AIが分析中...'):
             response = model.generate_content(prompt)
