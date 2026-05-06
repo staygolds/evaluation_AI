@@ -25,7 +25,7 @@ st.sidebar.header("評価対象者の選択")
 staff_names = df_staff['氏名'].tolist()
 selected_name = st.sidebar.selectbox("職員を選んでください", staff_names)
 
-# 選択された職員の詳細データを取得 [1]
+# .iloc の後ろに  を追加して、1件分のデータ（Series）として確定させます
 staff_info = df_staff[df_staff['氏名'] == selected_name].iloc
 staff_id = staff_info['職員ID']
 job_type = staff_info['職種区分']
