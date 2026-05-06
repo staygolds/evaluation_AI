@@ -107,7 +107,7 @@ if st.button("🚀 AI分析レポートを生成する"):
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.0-flash')
         
         with st.spinner('AIがレポートを生成中...'):
             response = model.generate_content(prompt)
