@@ -50,7 +50,7 @@ st.info(f"**今期の最優先ミッション:**\n{main_mission}")
 
 st.divider()
 
-# --- 評価入力（名称不一致の吸収） ---
+# --- 評価入力セクション ---
 search_dept = "新任" if department == "初任者" else department
 relevant_criteria = df_criteria[df_criteria['職種区分'] == search_dept]
 
@@ -58,36 +58,60 @@ scores = {}
 if not relevant_criteria.empty:
     st.subheader(f"✅ {search_dept}職 評価項目入力")
     for _, item in relevant_criteria.iterrows():
+        # ソース[1]の評価項目名を表示
         scores[item['評価項目名']] = st.slider(item['評価項目名'], 1, 5, 3)
+    
+    # --- 【追加機能】合計点の表示 ---
+    total_score = sum(scores.values())
+    max_score = len(relevant_criteria) * 5
+    st.sidebar.markdown("---")
+    st.sidebar.metric(label="評価点 合計", value=f"{total_score} / {max_score}")
 else:
     st.warning(f"「{department}」に対応する評価項目が見つかりません。")
 
-# --- AI分析実行（ここがエラーの箇所でした） ---
+# --- 【追加機能】面接者所感の入力 ---
+st.subheader("📝 面接者所感")
+interviewer_comments = st.text_area(
+    "面接での気づきや、本人へのフィードバック補足事項を入力してください",
+    placeholder="例：数値目標への意識が高く、具体的な行動計画も立てられている。",
+    height=150
+)
+
+# --- AI分析実行 ---
 if st.button("🚀 AI分析レポートを生成する"):
     eval_text = "\n".join([f"- {k}: {v}点" for k, v in scores.items()])
     
+    # 所感と合計点もAIに伝えます
     prompt = f"""
     あなたは社会福祉施設の経営人事エキスパートです。
-    # 氏名：{selected_name} / 役職：{job_title} / 資格：{qualifications}
-    # ミッション：{main_mission}
-    # 目標：{target_metric} ({target_value})
-    # 行動評価結果：\n{eval_text}
+    以下のデータに基づき、評価レポートを作成してください。
+
+    # 基本情報
+    - 氏名：{selected_name} / 役職：{job_title}
+    - 今期ミッション：{main_mission} (目標：{target_value})
+
+    # 評価データ
+    - 行動評価合計点：{total_score}点（{max_score}点満点）
+    - 各項目の点数：
+    {eval_text}
+
+    # 面接者からの所感
+    {interviewer_comments}
+
+    # レポート構成
+    1. 【総評】数値目標と行動評価の整合性
+    2. 【強みの分析】
+    3. 【課題と改善アドバイス】面接者所感を踏まえた具体案
     """
 
     try:
-        # インデント（字下げ）を try と合わせることが重要です
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
-        
-        ## 安定版 SDK であれば、この記述で 1.5-flash が動きます
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        with st.spinner('AIが分析中...'):
+        with st.spinner('AIがレポートを生成中...'):
             response = model.generate_content(prompt)
-            st.success("分析が完了しました！")
-            st.markdown("---")
+            st.success("分析完了")
             st.markdown(response.text)
-            
     except Exception as e:
-        # ここを try と垂直に揃えることで IndentationError を防ぎます
-        st.error(f"AI分析中にエラーが発生しました。詳細: {e}")
+        st.error(f"エラーが発生しました。詳細: {e}")
