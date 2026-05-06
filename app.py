@@ -80,7 +80,7 @@ if st.button("🚀 AI分析レポートを生成する"):
         genai.configure(api_key=api_key)
         
         # モデル名は安定版の 'gemini-1.5-flash' を使用
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.0-pro')
         
         with st.spinner('AIが分析中...'):
             response = model.generate_content(prompt)
