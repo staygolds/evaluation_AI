@@ -56,14 +56,14 @@ st.sidebar.header("評価対象者の選択")
 selected_name = st.sidebar.selectbox("職員を選んでください", df_staff['氏名'].tolist())
 
 # --- 6. 選択された職員のデータ抽出 ---
-staff_info = df_staff[df_staff['氏名'] == selected_name].iloc
+staff_info = df_staff[df_staff['氏名'] == selected_name].iloc[0]
 staff_id = staff_info['職員ID']
 job_title = staff_info['職種区分']
 department = staff_info['所属部署']
 qualifications = staff_info['保有資格']
 
 # ミッションデータの取得（ソース資料[3]より）
-mission_data = df_missions[df_missions['職員ID'] == staff_id].iloc if not df_missions[df_missions['職員ID'] == staff_id].empty else None
+mission_data = df_missions[df_missions['職員ID'] == staff_id].iloc[0] if not df_missions[df_missions['職員ID'] == staff_id].empty else None
 main_mission = mission_data['重要ミッション'] if mission_data is not None else "未設定"
 target_val = mission_data['目標値'] if mission_data is not None else "-"
 
