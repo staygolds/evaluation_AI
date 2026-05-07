@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+import google.genai as genai
 
 st.set_page_config(page_title="福祉施設 AI評価システム", layout="wide")
 
