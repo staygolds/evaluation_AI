@@ -1,5 +1,36 @@
 import streamlit as st
 import pandas as pd
+
+# Load m_staff.csv
+df_staff = pd.read_csv('/content/m_staff.csv')
+print('--- m_staff.csv ---')
+print('First 5 rows:')
+print(df_staff.head())
+print('\nInfo:')
+df_staff.info()
+print('\nDescription:')
+print(df_staff.describe())
+
+# Load m_missions.csv
+df_missions = pd.read_csv('/content/m_missions.csv')
+print('\n--- m_missions.csv ---')
+print('First 5 rows:')
+print(df_missions.head())
+print('\nInfo:')
+df_missions.info()
+print('\nDescription:')
+print(df_missions.describe())
+
+# Load m_evaluation_criteria.csv
+df_evaluation_criteria = pd.read_csv('/content/m_evaluation_criteria.csv')
+print('\n--- m_evaluation_criteria.csv ---')
+print('First 5 rows:')
+print(df_evaluation_criteria.head())
+print('\nInfo:')
+df_evaluation_criteria.info()
+print('\nDescription:')
+print(df_evaluation_criteria.describe())
+
 import google.genai as genai
 
 st.set_page_config(page_title="福祉施設 AI評価システム", layout="wide")
