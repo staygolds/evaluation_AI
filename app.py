@@ -1,32 +1,37 @@
 import streamlit as st
 import pandas as pd
-import random
 import google.generativeai as genai
-import os # For local testing if needed
 
-st.set_page_config(layout="wide")
-st.title("AI-Driven Staff Evaluation System")
+# --- 1. ページ基本設定 ---
+st.set_page_config(page_title="福祉施設 AI評価システム", layout="wide")
 
-# API Key handling for Streamlit Cloud
-GOOGLE_API_KEY = st.secrets.get("GEMINI_API_KEY")"
+# --- 2. APIキーの設定（Secretsから安全に取得） ---
+# st.secrets.get("GEMINI_API_KEY") とすることで、Secrets内の名前を指定します
+GOOGLE_API_KEY = st.secrets.get("GEMINI_API_KEY")
 
 if not GOOGLE_API_KEY:
-    st.error("Google Generative AI APIキーが設定されていません。Streamlit CloudのSecretsまたはローカルの環境変数に設定してください。")
-    st.stop() # Stop the app if API key is not set
+    st.error("Google Generative AI APIキーが設定されていません。Streamlit CloudのSecretsに 'GEMINI_API_KEY' を設定してください。")
+    st.stop()
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# 1. Data Loading (using relative paths for app.py deployment)
-# Assuming CSV files are in the same directory as app.py
-try:
-    df_staff = pd.read_csv('m_staff.csv')
-    df_missions = pd.read_csv('m_missions.csv')
-    df_evaluation_criteria = pd.read_csv('m_evaluation_criteria.csv')
-except FileNotFoundError as e:
-    st.error(f"CSVファイルが見つかりませんでした。`app.py`と同じディレクトリに配置してください: {e}")
-    st.stop()
+# --- 3. データの読み込み（キャッシュを利用） ---
+@st.cache_data
+def load_data():
+    # ソース資料[1][2][3][4]に基づくCSV読み込み
+    try:
+        staff = pd.read_csv('m_staff.csv', encoding='utf-8')
+        missions = pd.read_csv('m_missions.csv', encoding='utf-8')
+        criteria = pd.read_csv('m_evaluation_criteria.csv', encoding='utf-8')
+        return staff, missions, criteria
+    except Exception as e:
+        st.error(f"CSVファイルの読み込みに失敗しました: {e}")
+        st.stop()
 
-# 2. Job category mapping
+df_staff, df_missions, df_criteria = load_data()
+
+# --- 4. 職種マッピング定義 ---
+# ソース資料[1]のマッピングをベースに、「初任者」対応を追加
 job_category_mapping = {
     '管理者': '幹部',
     '副管理者兼サービス管理責任者': '幹部',
@@ -34,8 +39,8 @@ job_category_mapping = {
     '事務員': '事務',
     '主任看護師': '医務',
     '看護師': '医務',
-    '主任生活支援員': '支援',
-    '副主任生活支援員': '支援',
+    '主任生活支援員': '幹部',
+    '副主任生活支援員': '幹部',
     '生活支援員': '支援',
     '主任管理栄養士': '栄養',
     '管理栄養士': '栄養',
@@ -45,182 +50,107 @@ job_category_mapping = {
     '相談支援専門員': '支援',
     '相談員': '支援'
 }
-df_staff['評価職種区分'] = df_staff['職種区分'].map(job_category_mapping)
 
-# 3. Data Merging
-df_merged_staff_missions = pd.merge(df_staff, df_missions, on='職員ID', how='inner')
-df_integrated = pd.merge(
-    df_merged_staff_missions,
-    df_evaluation_criteria,
-    left_on='評価職種区分',
-    right_on='職種区分',
-    how='inner'
+# --- 5. サイドバー：評価対象者の選択 ---
+st.sidebar.header("評価対象者の選択")
+selected_name = st.sidebar.selectbox("職員を選んでください", df_staff['氏名'].tolist())
+
+# --- 6. 選択された職員のデータ抽出 ---
+staff_info = df_staff[df_staff['氏名'] == selected_name].iloc
+staff_id = staff_info['職員ID']
+job_title = staff_info['職種区分']
+department = staff_info['所属部署']
+qualifications = staff_info['保有資格']
+
+# ミッションデータの取得（ソース資料[3]より）
+mission_data = df_missions[df_missions['職員ID'] == staff_id].iloc if not df_missions[df_missions['職員ID'] == staff_id].empty else None
+main_mission = mission_data['重要ミッション'] if mission_data is not None else "未設定"
+target_val = mission_data['目標値'] if mission_data is not None else "-"
+
+# --- 7. メイン画面表示 ---
+st.title(f"📊 AI分析レポート作成: {selected_name} さん")
+col1, col2 = st.columns(2)
+with col1:
+    st.write(f"**役職:** {job_title} | **所属:** {department}")
+with col2:
+    st.write(f"**資格:** {qualifications}")
+
+st.info(f"**今期の最優先ミッション:**\n{main_mission} (目標値: {target_val})")
+
+st.divider()
+
+# --- 8. 評価入力（合計点集計機能付き） ---
+# 「初任者」部署の場合は「新任」の評価項目を適用するロジック（ソース資料[5][4]対応）
+if department == "初任者":
+    search_category = "新任"
+else:
+    search_category = job_category_mapping.get(job_title, "支援")
+
+relevant_criteria = df_criteria[df_criteria['職種区分'] == search_category]
+
+scores = {}
+if not relevant_criteria.empty:
+    st.subheader(f"✅ {search_category}職 評価項目入力")
+    for _, item in relevant_criteria.iterrows():
+        # スライダーで1〜5点を選択
+        scores[item['評価項目名']] = st.slider(item['評価項目名'], 1, 5, 3)
+    
+    # 合計点の計算
+    total_score = sum(scores.values())
+    max_score = len(relevant_criteria) * 5
+    st.sidebar.markdown("---")
+    st.sidebar.metric(label="行動評価 合計点", value=f"{total_score} / {max_score}")
+else:
+    st.warning("対応する評価項目が見つかりません。")
+
+# --- 9. 面接者所感の入力 ---
+st.subheader("📝 面接者所感")
+interviewer_comments = st.text_area(
+    "面接での気づきやフィードバック、本人への期待を入力してください",
+    placeholder="例：数値目標に対する意識が非常に高く、具体的な行動計画も立てられている。",
+    height=150
 )
 
-# 4. get_staff_info function
-def get_staff_info(staff_name):
-    staff_data = df_integrated[df_integrated['氏名'] == staff_name]
-    if staff_data.empty:
-        return {}
-    original_job_division = staff_data['職種区分_x'].unique().tolist()
-    evaluation_job_division = staff_data['評価職種区分'].unique().tolist()
-    basic_missions = staff_data['基本職務内容'].unique().tolist()
-    return {
-        '職員名': staff_name,
-        '元の職種区分': original_job_division,
-        '評価職種区分': evaluation_job_division,
-        '基本職務内容': basic_missions
-    }
+# --- 10. AI分析実行 ---
+if st.button("🚀 AI分析レポートを生成する"):
+    if not scores:
+        st.error("評価項目が入力されていません。")
+    else:
+        # AIへの指示文（プロンプト）の作成
+        eval_details = "\n".join([f"- {k}: {v}点" for k, v in scores.items()])
+        
+        prompt = f"""
+        あなたは社会福祉施設の経営人事エキスパートです。
+        以下のデータに基づき、{selected_name}さんの評価レポートを作成してください。
 
-# 5. get_evaluation_criteria function
-def get_evaluation_criteria(evaluation_job_category):
-    criteria_data = df_evaluation_criteria[df_evaluation_criteria['職種区分'] == evaluation_job_category]
-    if criteria_data.empty:
-        return []
-    evaluation_items = criteria_data[['評価項目名', '重要度ウェイト']].to_dict(orient='records')
-    return evaluation_items
+        # 対象者情報
+        - 氏名: {selected_name}
+        - 役職: {job_title} / 資格: {qualifications}
+        - 重要ミッション: {main_mission} (目標値: {target_val})
 
-# 6. simulate_evaluation function
-def simulate_evaluation(staff_name):
-    staff_info = get_staff_info(staff_name)
-    if not staff_info or not staff_info['評価職種区分']:
-        return {}
-    evaluation_job_category = staff_info['評価職種区分'][0]
-    evaluation_criteria = get_evaluation_criteria(evaluation_job_category)
-    if not evaluation_criteria:
-        return {}
+        # 評価結果
+        - 行動評価合計: {total_score}/{max_score}点
+        - 項目別詳細:
+        {eval_details}
 
-    evaluated_items = []
-    total_weighted_score = 0
-    for item in evaluation_criteria:
-        score = random.randint(1, 5) # Assign a random score between 1 and 5
-        weighted_score = score * item['重要度ウェイト']
-        total_weighted_score += weighted_score
-        evaluated_items.append({
-            '評価項目名': item['評価項目名'],
-            '評価点': score,
-            '重要度ウェイト': item['重要度ウェイト'],
-            '加重評価点': weighted_score
-        })
+        # 面接者所感
+        {interviewer_comments}
 
-    # Dummy interviewer feedback
-    interviewer_feedback = (
-        "この職員は、指示された業務を常に正確かつ迅速に遂行し、チームへの貢献も大きい。"
-        "特に問題解決能力が高く、困難な状況でも冷静に対応できる点が評価される。"
-        "今後はリーダーシップの機会を増やし、若手職員の育成にも積極的に関わることが期待される。"
-    )
+        # レポート構成
+        1. 【総評】ミッション達成に向けた現状分析
+        2. 【強みの抽出】点数の高い項目と資格の活かし方
+        3. 【改善・期待】合計点と所感を踏まえた次期の具体的なアクション
+        """
 
-    return {
-        '職員名': staff_name,
-        '評価職種区分': evaluation_job_category,
-        '評価項目詳細': evaluated_items,
-        '総合評価点': total_weighted_score,
-        '面談者所感': interviewer_feedback
-    }
-
-# 7. generate_ai_prompt function
-def generate_ai_prompt(evaluation_results):
-    if not evaluation_results:
-        return "評価結果が提供されていません。"
-    prompt_parts = []
-    prompt_parts.append(f"対象職員: {evaluation_results['職員名']}")
-    prompt_parts.append(f"評価職種区分: {evaluation_results['評価職種区分']}\n")
-
-    staff_info_re = get_staff_info(evaluation_results['職員名'])
-    if staff_info_re and staff_info_re['基本職務内容']:
-        prompt_parts.append("### 基本職務内容 ###")
-        for mission in staff_info_re['基本職務内容']:
-            prompt_parts.append(f"- {mission}")
-        prompt_parts.append("\n")
-
-    prompt_parts.append("### 評価項目詳細 ###")
-    for item in evaluation_results['評価項目詳細']:
-        prompt_parts.append(f"- 評価項目: {item['評価項目名']}")
-        prompt_parts.append(f"  評価点: {item['評価点']}")
-        prompt_parts.append(f"  重要度ウェイト: {item['重要度ウェイト']}")
-        prompt_parts.append(f"  加重評価点: {item['加重評価点']}")
-    prompt_parts.append("\n")
-
-    prompt_parts.append(f"総合評価点: {evaluation_results['総合評価点']}\n")
-
-    if '面談者所感' in evaluation_results:
-        prompt_parts.append("### 面談者所感 ###")
-        prompt_parts.append(evaluation_results['面談者所感'])
-    prompt_parts.append("\n")
-
-    prompt_parts.append("上記の評価結果に基づいて、この職員の強み、改善点、および今後の育成方針についてAIとして詳細に分析してください。")
-    return "\n".join(prompt_parts)
-
-# Streamlit UI
-staff_names = df_staff['氏名'].unique().tolist()
-selected_staff_name = st.selectbox("評価する職員を選択してください:", staff_names)
-
-if st.button("評価シミュレーションとAI分析を実行"):
-    with st.spinner("評価シミュレーションとAI分析を実行中..."):
-        simulated_results = simulate_evaluation(selected_staff_name)
-
-        if simulated_results:
-            st.subheader(f"{simulated_results['職員名']} の評価シミュレーション結果")
-            st.write(f"**評価職種区分:** {simulated_results['評価職種区分']}")
-            st.write(f"**総合評価点:** {simulated_results['総合評価点']}")
-
-            st.markdown("---")
-            st.subheader("各評価項目詳細")
-            for item in simulated_results['評価項目詳細']:
-                st.write(f"- **{item['評価項目名']}**")
-                st.write(f"  評価点: {item['評価点']}, 重要度ウェイト: {item['重要度ウェイト']}, 加重評価点: {item['加重評価点']}")
-
-            st.markdown("---")
-            st.subheader("面談者所感")
-            st.write(simulated_results['面談者所感'])
-
-            st.markdown("---")
-            st.subheader("AIによる総合分析")
-
-            ai_analysis_prompt = generate_ai_prompt(simulated_results)
-
-            try:
-                # Use the identified working model: models/gemini-pro-latest
-                model = genai.GenerativeModel('models/gemini-pro-latest')
-                ai_response = model.generate_content(ai_analysis_prompt)
-
-                if ai_response and ai_response.text:
-                    st.write("### AI分析結果 ###")
-                    st.write(ai_response.text)
-
-                    # Simple parsing of AI response
-                    st.write("### 整形されたAI分析結果 ###")
-                    sections = {}
-                    current_section = None
-                    keywords = ['強み:', '改善点:', '今後の育成方針:', '総合分析:', 'Strengths:', 'Improvements:', 'Development Plan:', 'Overall Analysis:']
-                    lines = ai_response.text.split('\n')
-
-                    for line in lines:
-                        found_keyword = False
-                        for keyword in keywords:
-                            if keyword in line:
-                                current_section = keyword.replace(':', '').strip()
-                                sections[current_section] = []
-                                remaining_line = line.split(keyword, 1)[1].strip()
-                                if remaining_line:
-                                    sections[current_section].append(remaining_line)
-                                found_keyword = True
-                                break
-                        if not found_keyword and current_section:
-                            sections[current_section].append(line.strip())
-
-                    if sections:
-                        for section_name, content_lines in sections.items():
-                            st.markdown(f'\n### {section_name} ###')
-                            for content_line in content_lines:
-                                if content_line:
-                                    st.write(f'  {content_line}')
-                    else:
-                        st.warning('AI分析結果をセクションに分割できませんでした。AIの出力形式を確認してください。')
-                else:
-                    st.error("AIからの有効な応答が得られませんでした。")
-
-            except Exception as e:
-                st.error(f"AIによる分析結果の生成中にエラーが発生しました: {e}")
-        else:
-            st.error(f"職員 '{selected_staff_name}' の評価シミュレーションに失敗しました。")
+        try:
+            # モデルは最新かつ安定している gemini-1.5-flash を使用
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            with st.spinner('AIがレポートを生成中...'):
+                response = model.generate_content(prompt)
+                st.success("分析が完了しました！")
+                st.markdown("---")
+                st.markdown(response.text)
+                
+        except Exception as e:
+            st.error(f"AI分析中にエラーが発生しました。時間を空けて再度お試しください。詳細: {e}")
