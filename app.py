@@ -8,7 +8,7 @@ st.set_page_config(layout="wide")
 st.title("AI-Driven Staff Evaluation System")
 
 # API Key handling for Streamlit Cloud
-GOOGLE_API_KEY = st.secrets.get("AIzaSyDTZbt-Do_s_5__az0vx3SLbOup8-0e_nI")
+GOOGLE_API_KEY = st.secrets.get("GEMINI_API_KEY")"
 
 if not GOOGLE_API_KEY:
     st.error("Google Generative AI APIキーが設定されていません。Streamlit CloudのSecretsまたはローカルの環境変数に設定してください。")
