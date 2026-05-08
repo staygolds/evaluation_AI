@@ -245,26 +245,27 @@ if st.button("🚀 AI分析レポートを生成する"):
 
             # レスポンス表示
             if response.candidates:
-                st.write(response.text)
 
-            　　# PDF生成
-   　　　　　　　 pdf_path = create_pdf(
-       　　　　　　　 response.text,
-     　　　　　　　   selected_name
-  　　　　　　　  )
+    　　　　　　　st.write(response.text)
 
-  　　　　　　  # ダウンロードボタン
- 　　　　　　　with open(pdf_path, "rb") as file:
+    　　　　　# PDF生成
+  　　　　　　  pdf_path = create_pdf(
+       　　　　　 response.text,
+        　　　　　selected_name
+ 　　　　　　　   )
 
-        st.download_button(
-            label="📄 PDFダウンロード",
-            data=file,
-            file_name=f"{selected_name}_評価レポート.pdf",
-            mime="application/pdf"
-        )
-　　
-            else:
-                st.error("AIから応答がありませんでした")
+  　　　　  # ダウンロードボタン
+  　　　　　  with open(pdf_path, "rb") as file:
+
+       　　　 st.download_button(
+         　　　   label="📄 PDFダウンロード",
+       　　　     data=file,
+      　　　      file_name=f"{selected_name}_評価レポート.pdf",
+      　　　     mime="application/pdf"
+    　　　　　    )
+
+else:
+    st.error("AIから応答がありませんでした")
 
         except Exception as e:
 
