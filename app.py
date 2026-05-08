@@ -254,7 +254,7 @@ if st.button("🚀 AI分析レポートを生成する"):
   　　　　　　　  )
 
   　　　　　　  # ダウンロードボタン
-  with open(pdf_path, "rb") as file:
+ 　　　　　　　with open(pdf_path, "rb") as file:
 
         st.download_button(
             label="📄 PDFダウンロード",
