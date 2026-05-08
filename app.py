@@ -143,7 +143,9 @@ if st.button("🚀 AI分析レポートを生成する"):
         """
 
         try:
-            model = genai.GenerativeModel('gemini-2.5-pro')
+            model = genai.GenerativeModel(
+    　　　　　　　model_name="gemini-2.5-flash"
+　　　　　　　)
 
             with st.spinner('AIがレポートを生成中...'):
 
