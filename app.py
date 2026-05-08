@@ -66,13 +66,20 @@ def create_pdf(report_text, staff_name):
         .replace("**", "")
     )
 
-    body = Paragraph(
-        cleaned_text.replace("\n", "<br/>"),
-        style
-    )
+    # 改行ごとに分割
+lines = cleaned_text.split("\n")
 
-    elements.append(body)
+for line in lines:
 
+    if line.strip() != "":
+
+        paragraph = Paragraph(
+            line,
+            style
+        )
+
+        elements.append(paragraph)
+        elements.append(Spacer(1, 10))
     doc.build(elements)
 
     return tmp_file.name
