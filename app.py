@@ -174,7 +174,6 @@ interviewer_comments = st.text_area(
 )
 
 # --- 10. AI分析実行 ---
-# --- 10. AI分析実行 ---
 if st.button("🚀 AI分析レポートを生成する"):
 
     if not scores:
@@ -246,26 +245,26 @@ if st.button("🚀 AI分析レポートを生成する"):
             # レスポンス表示
             if response.candidates:
 
-    　　　　　　　st.write(response.text)
+                st.write(response.text)
 
-    　　　　　　　# PDF生成
-    　　　　　　　pdf_path = create_pdf(
-        　　　　　　　response.text,
-        　　　　　　　selected_name
-    　　　　　　　)
+                # PDF生成
+                pdf_path = create_pdf(
+                    response.text,
+                    selected_name
+                )
 
-    　　　　　　　# ダウンロードボタン
-    　　　　　　　with open(pdf_path, "rb") as file:
+                # ダウンロードボタン
+                with open(pdf_path, "rb") as file:
 
-        　　　　　　　st.download_button(
-            　　　　　　　label="📄 PDFダウンロード",
-            　　　　　　　　data=file,
-            　　　　　　　　file_name=f"{selected_name}_評価レポート.pdf",
-            　　　　　　　　mime="application/pdf"
-        　　　　　　　　)
+                    st.download_button(
+                        label="📄 PDFダウンロード",
+                        data=file,
+                        file_name=f"{selected_name}_評価レポート.pdf",
+                        mime="application/pdf"
+                    )
 
-　　　　　　　else:
-    　　　　　　　st.error("AIから応答がありませんでした")
+            else:
+                st.error("AIから応答がありませんでした")
 
         except Exception as e:
 
