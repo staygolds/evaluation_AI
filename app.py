@@ -50,6 +50,7 @@ def create_pdf(report_text, staff_name):
 
     elements = []
 
+    # タイトル
     title = Paragraph(
         f"{staff_name} さん 評価レポート",
         style
@@ -58,7 +59,7 @@ def create_pdf(report_text, staff_name):
     elements.append(title)
     elements.append(Spacer(1, 20))
 
-    # Markdown記号を簡易除去
+    # Markdown記号除去
     cleaned_text = (
         report_text
         .replace("##", "")
@@ -66,20 +67,22 @@ def create_pdf(report_text, staff_name):
         .replace("**", "")
     )
 
-    # 改行ごとに分割
-lines = cleaned_text.split("\n")
+    # 改行ごとにParagraph化
+    lines = cleaned_text.split("\n")
 
-for line in lines:
+    for line in lines:
 
-    if line.strip() != "":
+        if line.strip() != "":
 
-        paragraph = Paragraph(
-            line,
-            style
-        )
+            paragraph = Paragraph(
+                line,
+                style
+            )
 
-        elements.append(paragraph)
-        elements.append(Spacer(1, 10))
+            elements.append(paragraph)
+            elements.append(Spacer(1, 10))
+
+    # PDF生成
     doc.build(elements)
 
     return tmp_file.name
