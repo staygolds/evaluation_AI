@@ -2,6 +2,14 @@ import streamlit as st
 import pandas as pd
 import google.generativeai as genai
 
+# PDF用追加
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.lib.pagesizes import A4
+import tempfile
+
 # --- 1. ページ基本設定 ---
 st.set_page_config(page_title="福祉施設 AI評価システム", layout="wide")
 
