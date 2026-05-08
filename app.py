@@ -143,12 +143,7 @@ if st.button("🚀 AI分析レポートを生成する"):
         """
 
 try:
-    # 利用可能モデル確認
-    available_models = [m.name for m in genai.list_models()]
-    st.write("利用可能モデル:", available_models)
-
-    # モデル指定（← models/ を消す）
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
 
     with st.spinner('AIがレポートを生成中...'):
         response = model.generate_content(
