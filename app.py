@@ -142,15 +142,26 @@ if st.button("🚀 AI分析レポートを生成する"):
         3. 【改善・期待】合計点と所感を踏まえた次期の具体的なアクション
         """
 
-        try:
-            # モデルは最新かつ安定している gemini-1.5-flash を使用
-            model = genai.GenerativeModel('models/gemini-1.5-flash')
-            
-            with st.spinner('AIがレポートを生成中...'):
-                response = model.generate_content(prompt)
-                st.success("分析が完了しました！")
-                st.markdown("---")
-                st.markdown(response.text)
-                
-        except Exception as e:
-            st.error(f"AI分析中にエラーが発生しました。時間を空けて再度お試しください。詳細: {e}")
+try:
+    # 利用可能モデル確認
+    available_models = [m.name for m in genai.list_models()]
+    st.write("利用可能モデル:", available_models)
+
+    # モデル指定（← models/ を消す）
+    model = genai.GenerativeModel('gemini-1.5-flash')
+
+    with st.spinner('AIがレポートを生成中...'):
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 2048,
+            }
+        )
+
+        st.success("分析が完了しました！")
+        st.markdown("---")
+        st.markdown(response.text)
+
+except Exception as e:
+    st.error(f"AI分析中にエラーが発生しました: {e}")
