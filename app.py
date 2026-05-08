@@ -9,6 +9,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.lib.pagesizes import A4
 import tempfile
+from datetime import datetime
 
 # --- 1. ページ基本設定 ---
 st.set_page_config(page_title="福祉施設 AI評価システム", layout="wide")
@@ -273,7 +274,7 @@ if st.button("🚀 AI分析レポートを生成する"):
                     st.download_button(
                         label="📄 PDFダウンロード",
                         data=file,
-                        file_name=f"{selected_name}_評価レポート.pdf",
+                        file_name=f"{selected_name}_{datetime.now().strftime('%Y%m%d')}評価レポート.pdf",
                         mime="application/pdf"
                     )
 
