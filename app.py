@@ -227,7 +227,9 @@ if st.button("🚀 AI分析レポートを生成する"):
 3. 改善点
 4. 次期への期待
 
-800文字以内で作成してください。
+各項目を見出し付きで、
+読みやすく改行しながら、
+1200文字以内で作成してください。
 """
 
         try:
@@ -243,8 +245,8 @@ if st.button("🚀 AI分析レポートを生成する"):
                 response = model.generate_content(
                     prompt,
                     generation_config={
-                        "temperature": 0.5,
-                        "max_output_tokens": 2048,
+                        "temperature": 0.4,
+                        "max_output_tokens": 4096,
                     }
                 )
 
@@ -254,6 +256,8 @@ if st.button("🚀 AI分析レポートを生成する"):
 
             # レスポンス表示
             if response.candidates:
+
+                report_text = response.candidates[0].content.parts[0].text
 
                 st.write(response.text)
 
