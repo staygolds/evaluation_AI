@@ -118,7 +118,7 @@ if st.button("🚀 AI分析レポートを生成する"):
     else:
         # AIへの指示文（プロンプト）の作成
         eval_details = "\n".join([f"- {k}: {v}点" for k, v in scores.items()])
-        
+
         prompt = f"""
         あなたは社会福祉施設の経営人事エキスパートです。
         以下のデータに基づき、{selected_name}さんの評価レポートを作成してください。
@@ -142,27 +142,27 @@ if st.button("🚀 AI分析レポートを生成する"):
         3. 【改善・期待】合計点と所感を踏まえた次期の具体的なアクション
         """
 
-try:
-    model = genai.GenerativeModel('gemini-2.5-pro')
+        try:
+            model = genai.GenerativeModel('gemini-2.5-pro')
 
-    with st.spinner('AIがレポートを生成中...'):
+            with st.spinner('AIがレポートを生成中...'):
 
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.7,
-                "max_output_tokens": 8192,
-            }
-        )
+                response = model.generate_content(
+                    prompt,
+                    generation_config={
+                        "temperature": 0.7,
+                        "max_output_tokens": 8192,
+                    }
+                )
 
-        st.success("分析が完了しました！")
-        st.markdown("---")
+                st.success("分析が完了しました！")
+                st.markdown("---")
 
-        # 終了理由確認
-        st.write("finish_reason:", response.candidates[0].finish_reason)
+                # 終了理由確認
+                st.write("finish_reason:", response.candidates[0].finish_reason)
 
-        # レポート表示
-        st.write(response.text)
+                # レポート表示
+                st.write(response.text)
 
-except Exception as e:
-    st.error(f"AI分析中にエラーが発生しました: {e}")
+        except Exception as e:
+            st.error(f"AI分析中にエラーが発生しました: {e}")
