@@ -143,20 +143,17 @@ if st.button("🚀 AI分析レポートを生成する"):
         """
 
 try:
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-pro')
 
-    with st.spinner('AIがレポートを生成中...'):
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.7,
-                "max_output_tokens": 2048,
-            }
-        )
+response = model.generate_content(
+    prompt,
+    generation_config={
+        "temperature": 0.7,
+        "max_output_tokens": 8192,
+    }
+)
 
-        st.success("分析が完了しました！")
-        st.markdown("---")
-        st.markdown(response.text)
+st.write(response.text)
 
 except Exception as e:
     st.error(f"AI分析中にエラーが発生しました: {e}")
