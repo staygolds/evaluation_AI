@@ -112,58 +112,81 @@ interviewer_comments = st.text_area(
 )
 
 # --- 10. AI分析実行 ---
+# --- 10. AI分析実行 ---
 if st.button("🚀 AI分析レポートを生成する"):
+
     if not scores:
         st.error("評価項目が入力されていません。")
+
     else:
-        # AIへの指示文（プロンプト）の作成
-        eval_details = "\n".join([f"- {k}: {v}点" for k, v in scores.items()])
 
+        # 評価詳細
+        eval_details = "\n".join(
+            [f"- {k}: {v}点" for k, v in scores.items()]
+        )
+
+        # AIプロンプト
         prompt = f"""
-        あなたは社会福祉施設の経営人事エキスパートです。
-        以下のデータに基づき、{selected_name}さんの評価レポートを作成してください。
+あなたは社会福祉施設の経営人事エキスパートです。
 
-        # 対象者情報
-        - 氏名: {selected_name}
-        - 役職: {job_title} / 資格: {qualifications}
-        - 重要ミッション: {main_mission} (目標値: {target_val})
+以下のデータに基づき、
+{selected_name}さんの評価レポートを作成してください。
 
-        # 評価結果
-        - 行動評価合計: {total_score}/{max_score}点
-        - 項目別詳細:
-        {eval_details}
+# 対象者情報
+- 氏名: {selected_name}
+- 役職: {job_title}
+- 資格: {qualifications}
 
-        # 面接者所感
-        {interviewer_comments}
+# 重要ミッション
+{main_mission}
+(目標値: {target_val})
 
-        # レポート構成
-        1. 【総評】ミッション達成に向けた現状分析
-        2. 【強みの抽出】点数の高い項目と資格の活かし方
-        3. 【改善・期待】合計点と所感を踏まえた次期の具体的なアクション
-        """
+# 評価結果
+- 行動評価合計: {total_score}/{max_score}点
+
+# 項目別詳細
+{eval_details}
+
+# 面接者所感
+{interviewer_comments}
+
+# レポート構成
+1. 総評
+2. 強み
+3. 改善点
+4. 次期への期待
+
+800文字以内で作成してください。
+"""
 
         try:
-            odel = genai.GenerativeModel(
-    model_name="gemini-2.5-flash"
-)
-            with st.spinner('AIがレポートを生成中...'):
+
+            # モデル生成
+            model = genai.GenerativeModel(
+                model_name="gemini-2.5-flash"
+            )
+
+            # AI実行
+            with st.spinner("AIが分析中です..."):
 
                 response = model.generate_content(
                     prompt,
                     generation_config={
-                        "temperature": 0.7,
-                        "max_output_tokens": 8192,
+                        "temperature": 0.5,
+                        "max_output_tokens": 2048,
                     }
                 )
 
-                st.success("分析が完了しました！")
-                st.markdown("---")
+            # 成功表示
+            st.success("分析完了")
+            st.markdown("---")
 
-                # 終了理由確認
-                st.write("finish_reason:", response.candidates[0].finish_reason)
-
-                # レポート表示
+            # レスポンス表示
+            if response.candidates:
                 st.write(response.text)
+            else:
+                st.error("AIから応答がありませんでした")
 
         except Exception as e:
+
             st.error(f"AI分析中にエラーが発生しました: {e}")
