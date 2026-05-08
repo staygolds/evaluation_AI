@@ -23,6 +23,60 @@ if not GOOGLE_API_KEY:
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
+# 日本語フォント登録
+pdfmetrics.registerFont(
+    UnicodeCIDFont('HeiseiKakuGo-W5')
+)
+
+# PDF生成関数
+def create_pdf(report_text, staff_name):
+
+    tmp_file = tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf"
+    )
+
+    doc = SimpleDocTemplate(
+        tmp_file.name,
+        pagesize=A4
+    )
+
+    styles = getSampleStyleSheet()
+
+    style = styles["BodyText"]
+    style.fontName = "HeiseiKakuGo-W5"
+    style.fontSize = 12
+    style.leading = 20
+
+    elements = []
+
+    title = Paragraph(
+        f"{staff_name} さん 評価レポート",
+        style
+    )
+
+    elements.append(title)
+    elements.append(Spacer(1, 20))
+
+    # Markdown記号を簡易除去
+    cleaned_text = (
+        report_text
+        .replace("##", "")
+        .replace("#", "")
+        .replace("**", "")
+    )
+
+    body = Paragraph(
+        cleaned_text.replace("\n", "<br/>"),
+        style
+    )
+
+    elements.append(body)
+
+    doc.build(elements)
+
+    return tmp_file.name
+    
 # --- 3. データの読み込み（キャッシュを利用） ---
 @st.cache_data
 def load_data():
@@ -192,6 +246,23 @@ if st.button("🚀 AI分析レポートを生成する"):
             # レスポンス表示
             if response.candidates:
                 st.write(response.text)
+
+            　　# PDF生成
+   　　　　　　　 pdf_path = create_pdf(
+       　　　　　　　 response.text,
+     　　　　　　　   selected_name
+  　　　　　　　  )
+
+  　　　　　　  # ダウンロードボタン
+  with open(pdf_path, "rb") as file:
+
+        st.download_button(
+            label="📄 PDFダウンロード",
+            data=file,
+            file_name=f"{selected_name}_評価レポート.pdf",
+            mime="application/pdf"
+        )
+　　
             else:
                 st.error("AIから応答がありませんでした")
 
