@@ -409,7 +409,7 @@ st.subheader("📝 面接者所感")
 interviewer_comments = st.text_area(
     "面接での気づきやフィードバック、本人への期待を入力してください",
     placeholder="例：数値目標への意識が高く、周囲への働きかけも積極的である。",
-    height=150
+    height=450
 )
 
 
