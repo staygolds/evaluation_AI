@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import google.generativeai as genai
 import tempfile
-import os
 from datetime import datetime
 
 # PDF用
@@ -81,7 +80,6 @@ def create_pdf(report_text, staff_name):
 
     elements = []
 
-    # タイトル
     title = Paragraph(
         f"{staff_name} さん 評価レポート",
         style
@@ -90,7 +88,6 @@ def create_pdf(report_text, staff_name):
     elements.append(title)
     elements.append(Spacer(1, 20))
 
-    # Markdown除去
     cleaned_text = (
         report_text
         .replace("##", "")
@@ -98,7 +95,6 @@ def create_pdf(report_text, staff_name):
         .replace("**", "")
     )
 
-    # 改行ごとにParagraph化
     lines = cleaned_text.split("\n")
 
     for line in lines:
@@ -202,7 +198,7 @@ selected_name = st.sidebar.selectbox(
 
 
 # ==================================================
-# 8. 職員データ取得
+# 8. 職員情報取得
 # ==================================================
 
 staff_info = df_staff[
@@ -216,7 +212,7 @@ qualifications = staff_info['保有資格']
 
 
 # ==================================================
-# 9. 職務分掌・ミッション取得（複数行対応）
+# 9. ミッションデータ取得（複数行対応）
 # ==================================================
 
 mission_data = df_missions[
@@ -224,43 +220,12 @@ mission_data = df_missions[
 ]
 
 if mission_data.empty:
+
     mission_data = None
 
 
 # ==================================================
-# 10. 職務分掌テキスト生成
-# ==================================================
-
-mission_text = ""
-
-if mission_data is not None:
-
-    for _, row in mission_data.iterrows():
-
-        mission_text += f"""
-■ 基本職務内容
-{row['基本職務内容']}
-
-■ 重要ミッション
-{row['重要ミッション']}
-
-■ 数値目標
-{row['主要数値目標']}
-
-■ 目標値
-{row['目標値']}
-
-----------------------------
-
-"""
-
-else:
-
-    mission_text = "職務分掌データなし"
-
-
-# ==================================================
-# 11. 画面表示
+# 10. メイン表示
 # ==================================================
 
 st.title(
@@ -271,29 +236,112 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    st.write(
-        f"**役職:** {job_title}"
-    )
-
-    st.write(
-        f"**所属:** {department}"
-    )
+    st.write(f"**役職:** {job_title}")
+    st.write(f"**所属:** {department}")
 
 with col2:
 
-    st.write(
-        f"**資格:** {qualifications}"
-    )
-
-
-st.info(f"""
-### 今期の職務分掌・重要ミッション
-
-{mission_text}
-""")
+    st.write(f"**資格:** {qualifications}")
 
 
 st.divider()
+
+
+# ==================================================
+# 11. 職務分掌・達成度入力
+# ==================================================
+
+st.subheader("📌 職務分掌・達成度評価")
+
+mission_text = ""
+
+mission_scores = {}
+
+if mission_data is not None:
+
+    for index, row in mission_data.iterrows():
+
+        basic_job = (
+            str(row['基本職務内容'])
+            if pd.notna(row['基本職務内容'])
+            else ""
+        )
+
+        mission = (
+            str(row['重要ミッション'])
+            if pd.notna(row['重要ミッション'])
+            else ""
+        )
+
+        kpi = (
+            str(row['主要数値目標'])
+            if pd.notna(row['主要数値目標'])
+            else ""
+        )
+
+        target = (
+            str(row['目標値'])
+            if pd.notna(row['目標値'])
+            else ""
+        )
+
+        st.markdown("---")
+
+        st.markdown(f"### ■ {basic_job}")
+
+        if mission != "":
+            st.write(f"重要ミッション: {mission}")
+
+        if kpi != "":
+            st.write(f"数値目標: {kpi}")
+
+        if target != "":
+            st.write(f"目標値: {target}")
+
+        # 達成度入力
+        achievement = st.select_slider(
+            f"{basic_job} の達成度",
+            options=[
+                0,
+                10,
+                20,
+                30,
+                40,
+                50,
+                60,
+                70,
+                80,
+                90,
+                100
+            ],
+            value=50,
+            key=f"mission_{index}"
+        )
+
+        mission_scores[basic_job] = achievement
+
+        mission_text += f"""
+■ 基本職務内容
+{basic_job}
+
+■ 重要ミッション
+{mission}
+
+■ 数値目標
+{kpi}
+
+■ 目標値
+{target}
+
+■ 達成度
+{achievement}%
+
+----------------------------
+"""
+
+else:
+
+    st.warning("職務分掌データがありません")
 
 
 # ==================================================
@@ -360,7 +408,7 @@ st.subheader("📝 面接者所感")
 
 interviewer_comments = st.text_area(
     "面接での気づきやフィードバック、本人への期待を入力してください",
-    placeholder="例：数値目標に対する意識が高く、具体的行動ができている。",
+    placeholder="例：数値目標への意識が高く、周囲への働きかけも積極的である。",
     height=150
 )
 
@@ -387,19 +435,26 @@ if st.button("🚀 AI分析レポートを生成する"):
         )
 
         prompt = f"""
-あなたは社会福祉施設の経営人事エキスパートです。
+あなたは社会福祉法人の人事評価専門AIです。
 
-以下の情報を総合的に分析し、
-評価レポートを作成してください。
+以下の情報を基に、
+総合的人事評価レポートを作成してください。
 
-# 対象者情報
+# 職員情報
 
-- 氏名: {selected_name}
-- 役職: {job_title}
-- 所属: {department}
-- 資格: {qualifications}
+氏名:
+{selected_name}
 
-# 職務分掌・重要ミッション
+役職:
+{job_title}
+
+所属:
+{department}
+
+資格:
+{qualifications}
+
+# 職務分掌・達成度評価
 
 {mission_text}
 
@@ -415,17 +470,20 @@ if st.button("🚀 AI分析レポートを生成する"):
 
 {interviewer_comments}
 
-# 評価観点
+# 分析観点
 
 以下を総合的に分析してください。
 
-・職務責任
-・ミッション遂行力
-・組織運営力
+・職務責任遂行能力
+・重点ミッションへの取り組み
+・達成度の妥当性
+・管理能力
 ・対人支援力
-・今後の成長期待
-・数値目標への意識
-・管理職としての視点
+・組織運営力
+・リーダーシップ
+・今後期待される役割
+・強み
+・改善点
 
 # レポート構成
 
@@ -434,7 +492,8 @@ if st.button("🚀 AI分析レポートを生成する"):
 3. 改善点
 4. 今後への期待
 
-1200文字以内で作成してください。
+1200文字以内で、
+具体的かつ専門的に作成してください。
 """
 
         try:
