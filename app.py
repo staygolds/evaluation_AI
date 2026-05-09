@@ -511,7 +511,7 @@ if st.button("🚀 AI分析レポートを生成する"):
                     generation_config={
 
                         "temperature": 0.5,
-                        "max_output_tokens": 4096,
+                        "max_output_tokens": 8192,
                     }
                 )
 
